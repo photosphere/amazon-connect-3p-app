@@ -1,3 +1,3 @@
-npm install
-npm run build
-./deploy.h
+#### npm install
+#### npm run build
+#### ./deploy.h
