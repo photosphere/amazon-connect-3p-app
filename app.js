@@ -1,31 +1,67 @@
 import { AmazonConnectApp } from "@amazon-connect/app";
-import { AgentClient } from "@amazon-connect/contact";
+import { AgentClient, ContactClient } from "@amazon-connect/contact";
+import { AppContactScope } from "@amazon-connect/app";
 
-const { provider } = AmazonConnectApp.init({
+// Helper function to update UI elements
+const updateUI = (id, value) => {
+  document.getElementById(id).textContent = value;
+};
+
+// Initialize agent data and state change listener
+const initializeAgent = async () => {
+  const agentClient = new AgentClient();
+
+  // Fetch agent data in parallel
+  const [arn, name, state] = await Promise.all([
+    agentClient.getARN(),
+    agentClient.getName(),
+    agentClient.getState(),
+  ]);
+
+  // Display initial agent data
+  updateUI("arn", arn);
+  updateUI("name", name);
+  updateUI("status", state.name);
+
+  // Listen for agent state changes
+  agentClient.onStateChanged((data) => {
+    updateUI("status", data.state);
+  });
+};
+
+// Initialize contact connection listener
+const initializeContact = async () => {
+  const contactClient = new ContactClient();
+
+  updateUI("contactId", AppContactScope.CurrentContactId);
+
+  // Listen for contact connected events
+  contactClient.onConnected(async (data) => {
+    const { contactId } = data;
+
+    // Fetch contact data in parallel
+    const [channelType, queue, attributes] = await Promise.all([
+      contactClient.getChannelType(contactId),
+      contactClient.getQueue(contactId),
+      contactClient.getAttributes(contactId, "*"),
+    ]);
+
+    // Display contact data
+    updateUI("contactId", contactId);
+    updateUI("queue", queue.name);
+    updateUI("channelType", `${channelType.type} (${channelType.subtype})`);
+    updateUI("attributes", JSON.stringify(attributes, null, 2));
+  });
+};
+
+// Initialize Amazon Connect App
+AmazonConnectApp.init({
   onCreate: async (event) => {
-    const { appInstanceId } = event.context;
-    console.log("App initialized: ", appInstanceId);
-
-    const agentClient = new AgentClient();
-    const arn = await agentClient.getARN();
-    const name = await agentClient.getName();
-    const state = await agentClient.getState();
-    console.log(`Got the arn value: ${arn}`);
-    console.log(`Got the name value: ${name}`);
-    console.log(`Got the state value: ${state}`);
-
-    document.getElementById("arn").textContent = arn;
-    document.getElementById("name").textContent = name;
-    document.getElementById("status").textContent = state.name;
-
-    const handler = async (data) => {
-      console.log("Agent state change occurred! " + data);
-      document.getElementById("status").textContent = data.state;
-    };
-
-    agentClient.onStateChanged(handler);
+    console.log("App initialized:", event.context.appInstanceId);
+    await initializeAgent();
+    await initializeContact();
   },
-  onDestroy: (event) => {
+  onDestroy: () => {
     console.log("App being destroyed");
   },
 });
