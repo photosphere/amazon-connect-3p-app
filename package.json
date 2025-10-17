@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "esbuild app.js --bundle --outfile=bundle.js",
+    "dev": "esbuild app.js --bundle --outfile=bundle.js --servedir=. --watch"
+  },
+  "dependencies": {
+    "@amazon-connect/app": "^1.0.8",
+    "@amazon-connect/contact": "^1.0.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.0"
+  }
+}
